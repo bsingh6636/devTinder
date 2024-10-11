@@ -2,6 +2,7 @@ const express = require('express')
 const connectDB = require('./config/dbConnection')
 const User = require('./models/user')
 const user = require('./models/user')
+const { default: mongoose } = require('mongoose')
 
 const app = express()
 app.use(express.json())
@@ -13,46 +14,10 @@ app.post('/signUp', async (req, res) => {
         user = await user.save()
         res.send(user)
     } catch (error) {
-        res.send(error)
+        res.send(error.message)
     }
 })
-const cleanupDuplicates = async (req, res) => {
-  return res.send( " console.log('hi')")
-    try {
-        // Find duplicates by emailId
-        const emailDuplicates = await User.aggregate([
-            { $group: { _id: "$emailId", ids: { $push: "$_id" }, count: { $sum: 1 } } },
-            { $match: { count: { $gt: 1 } } }
-        ]);
 
-        // Remove duplicates by emailId, keeping the first one
-        for (const doc of emailDuplicates) {
-            doc.ids.shift(); // Keep the first document
-            await User.deleteMany({ _id: { $in: doc.ids } }); // Remove the rest
-        }
-
-        // Repeat for firstName or any other fields
-        const nameDuplicates = await User.aggregate([
-            { $group: { _id: "$firstName", ids: { $push: "$_id" }, count: { $sum: 1 } } },
-            { $match: { count: { $gt: 1 } } }
-        ]);
-
-        // Remove duplicates by firstName, keeping the first one
-        for (const doc of nameDuplicates) {
-            doc.ids.shift(); // Keep the first document
-            await User.deleteMany({ _id: { $in: doc.ids } }); // Remove the rest
-        }
-
-        // Create unique indexes for emailId and firstName
-        await User.createIndexes({ emailId: 1, unique: true });
-        await User.createIndexes({ firstName: 1, unique: true });
-
-        res.status(200).send({ message: 'Duplicates cleaned up and unique constraints applied.' });
-    } catch (error) {
-        console.error('Error during cleanup:', error);
-       return res.status(500).send({ message: 'Error during cleanup', error: error.message });
-    }
-};
 
 app.get('/feed', async (req, res) => {
     try {
@@ -81,11 +46,11 @@ app.post('/findById', async (req, res) => {
     }
 
 })
-app.use('/test', async (req, res) => {
+// app.use('/test', async (req, res) => {
 
-    const user = await User.findOne({ firstName: "Brijesh Kushwaha" })
-    res.send(user)  // endpoint to test the server is running properly
-})
+//     const user = await User.findOne({ firstName: "Brijesh Kushwaha" })
+//     res.send(user)  // endpoint to test the server is running properly
+// })
 app.delete('/deleteUser', async (req, res) => {
     const id = req.body.id
     try {
@@ -96,21 +61,27 @@ app.delete('/deleteUser', async (req, res) => {
     }
 })
 
-app.get('/test',async (req , res)=>{
+app.get('/test', async (req, res) => {
     console.log('hi')
     res.send('hi')
-    cleanupDuplicates(req , res)
-  
+    cleanupDuplicates(req, res)
+
 })
-app.patch('/updateUser', async (req, res) => {
-    let _id = req.body._id
-    cleanupDuplicates()
-    let firstName = req.body.firstName
+
+
+app.patch('/updateUser/:userId', async (req, res) => {
+    let _id = req.params.userId
+    console.log(_id)
+    if(!_id) return res.status(400).send('id is required')
     const obj = req.body
     delete obj._id
+    const notAllowedObjects = ['country', 'emailId',]
+    console.log(obj)
+    const isUpdateAllowed = Object.keys(obj).every(key => !notAllowedObjects.includes(key))
+    if (!isUpdateAllowed) return res.status(400).send('change not allowed')
     try {
         //     const item = await User.findOneAndUpdate({ _id }, obj, { new: true, upsert: true })
-        const item = await user.findByIdAndUpdate(_id, obj, { new: true, upsert: true })
+        const item = await user.findByIdAndUpdate(_id, obj, { new: true, upsert: true , runValidators : true })
         return res.send(item)
     } catch (error) {
         res.send(error)
@@ -125,6 +96,3 @@ connectDB().
             console.log("Server is running on port 1234")  // server will start on this port
         })
     })
-
-//18601801290
-//7554 
