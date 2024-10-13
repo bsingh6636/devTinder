@@ -2,19 +2,27 @@ const express = require('express')
 const connectDB = require('./config/dbConnection')
 const User = require('./models/user')
 const user = require('./models/user')
-const { default: mongoose } = require('mongoose')
+const singUpValidator = require('./utils/signUpDataValidator')
+const bcrypt = require('bcrypt')
 
 const app = express()
 app.use(express.json())
 
 app.post('/signUp', async (req, res) => {
     const userObj = req.body
+    const { emailId, password, firstName, lastName, age, gender, country, skills, photoUrl } = req.body
     try {
-        let user = new User(userObj)
+        singUpValidator(req)
+        const salt = await bcrypt.genSalt(10)
+
+        const hashedPassword = await bcrypt.hash(password, salt)
+        console.log(hashedPassword)
+        let user = new User({ emailId, password: hashedPassword, firstName, lastName, age, gender, country, skills, photoUrl })
         user = await user.save()
         res.send(user)
     } catch (error) {
-        res.send(error.message)
+        console.log(('error while signing up : ' + error))
+        res.send('error while signing up : ' + error.message)
     }
 })
 
@@ -72,7 +80,7 @@ app.get('/test', async (req, res) => {
 app.patch('/updateUser/:userId', async (req, res) => {
     let _id = req.params.userId
     console.log(_id)
-    if(!_id) return res.status(400).send('id is required')
+    if (!_id) return res.status(400).send('id is required')
     const obj = req.body
     delete obj._id
     const notAllowedObjects = ['country', 'emailId',]
@@ -81,7 +89,7 @@ app.patch('/updateUser/:userId', async (req, res) => {
     if (!isUpdateAllowed) return res.status(400).send('change not allowed')
     try {
         //     const item = await User.findOneAndUpdate({ _id }, obj, { new: true, upsert: true })
-        const item = await user.findByIdAndUpdate(_id, obj, { new: true, upsert: true , runValidators : true })
+        const item = await user.findByIdAndUpdate(_id, obj, { new: true, upsert: true, runValidators: true })
         return res.send(item)
     } catch (error) {
         res.send(error)
