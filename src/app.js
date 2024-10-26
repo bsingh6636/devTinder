@@ -4,17 +4,16 @@ const User = require('./models/user')
 const user = require('./models/user')
 const singUpValidator = require('./utils/signUpDataValidator')
 const bcrypt = require('bcrypt')
+const validator = require('validator')
 
 const app = express()
 app.use(express.json())
 
 app.post('/signUp', async (req, res) => {
-    const userObj = req.body
     const { emailId, password, firstName, lastName, age, gender, country, skills, photoUrl } = req.body
     try {
         singUpValidator(req)
         const salt = await bcrypt.genSalt(10)
-
         const hashedPassword = await bcrypt.hash(password, salt)
         console.log(hashedPassword)
         let user = new User({ emailId, password: hashedPassword, firstName, lastName, age, gender, country, skills, photoUrl })
@@ -54,11 +53,7 @@ app.post('/findById', async (req, res) => {
     }
 
 })
-// app.use('/test', async (req, res) => {
 
-//     const user = await User.findOne({ firstName: "Brijesh Kushwaha" })
-//     res.send(user)  // endpoint to test the server is running properly
-// })
 app.delete('/deleteUser', async (req, res) => {
     const id = req.body.id
     try {
@@ -73,9 +68,7 @@ app.get('/test', async (req, res) => {
     console.log('hi')
     res.send('hi')
     cleanupDuplicates(req, res)
-
 })
-
 
 app.patch('/updateUser/:userId', async (req, res) => {
     let _id = req.params.userId
@@ -88,10 +81,27 @@ app.patch('/updateUser/:userId', async (req, res) => {
     const isUpdateAllowed = Object.keys(obj).every(key => !notAllowedObjects.includes(key))
     if (!isUpdateAllowed) return res.status(400).send('change not allowed')
     try {
-        //     const item = await User.findOneAndUpdate({ _id }, obj, { new: true, upsert: true })
+        //const item = await User.findOneAndUpdate({ _id }, obj, { new: true, upsert: true })
         const item = await user.findByIdAndUpdate(_id, obj, { new: true, upsert: true, runValidators: true })
         return res.send(item)
     } catch (error) {
+        res.send(error)
+    }
+})
+
+app.post('/signIn', async (req, res, next) => {
+    try {
+        const { emailId, password } = req.body;
+        if (!emailId || !password) return res.status(400).json('emailId and password required')
+        if (!validator.isEmail(emailId)) return res.status(400).json('invalid email')
+
+        const user = await User.findOne({ emailId })
+        if (!user) return res.status(400).json('user not found')
+        const isPasswordCorrect = await bcrypt.compare(password , user.password) 
+        if(!isPasswordCorrect) return res.status(400).json('incorrect password')
+        res.send({ user})
+    } catch (error) {
+        console.log(error)
         res.send(error)
     }
 })
