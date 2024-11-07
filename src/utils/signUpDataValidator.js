@@ -1,10 +1,6 @@
 const validator = require('validator')
 const singUpValidator = (req) => {
     const { emailId, password, firstName, lastName } = req.body
-   
-    console.log(typeof (req.body))
-    console.log(req.body['firstName']) 
-
     const requiredFields = ['emailId', 'password', 'firstName', 'lastName', 'age'];
 
     for (let field of requiredFields) {

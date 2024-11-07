@@ -5,9 +5,12 @@ const user = require('./models/user')
 const singUpValidator = require('./utils/signUpDataValidator')
 const bcrypt = require('bcrypt')
 const validator = require('validator')
+const cookieParser = require('cookie-parser')
+const jwt = require('jsonwebtoken')
 
 const app = express()
 app.use(express.json())
+app.use(cookieParser())
 
 app.post('/signUp', async (req, res) => {
     const { emailId, password, firstName, lastName, age, gender, country, skills, photoUrl } = req.body
@@ -15,7 +18,6 @@ app.post('/signUp', async (req, res) => {
         singUpValidator(req)
         const salt = await bcrypt.genSalt(10)
         const hashedPassword = await bcrypt.hash(password, salt)
-        console.log(hashedPassword)
         let user = new User({ emailId, password: hashedPassword, firstName, lastName, age, gender, country, skills, photoUrl })
         user = await user.save()
         res.send(user)
@@ -24,7 +26,6 @@ app.post('/signUp', async (req, res) => {
         res.send('error while signing up : ' + error.message)
     }
 })
-
 
 app.get('/feed', async (req, res) => {
     try {
@@ -63,21 +64,12 @@ app.delete('/deleteUser', async (req, res) => {
         res.send(error)
     }
 })
-
-app.get('/test', async (req, res) => {
-    console.log('hi')
-    res.send('hi')
-    cleanupDuplicates(req, res)
-})
-
 app.patch('/updateUser/:userId', async (req, res) => {
     let _id = req.params.userId
-    console.log(_id)
     if (!_id) return res.status(400).send('id is required')
     const obj = req.body
     delete obj._id
     const notAllowedObjects = ['country', 'emailId',]
-    console.log(obj)
     const isUpdateAllowed = Object.keys(obj).every(key => !notAllowedObjects.includes(key))
     if (!isUpdateAllowed) return res.status(400).send('change not allowed')
     try {
@@ -98,7 +90,9 @@ app.post('/signIn', async (req, res, next) => {
         const user = await User.findOne({ emailId })
         if (!user) return res.status(400).json('user not found')
         const isPasswordCorrect = await bcrypt.compare(password , user.password) 
-        if(!isPasswordCorrect) return res.status(400).json('incorrect password')
+        if(!isPasswordCorrect) return res.status(400).json('incorrect credentials')
+        const token = jwt.sign({_id : user._id} , 'privatekey')
+        res.cookie('userToken', token)
         res.send({ user})
     } catch (error) {
         console.log(error)
@@ -106,6 +100,13 @@ app.post('/signIn', async (req, res, next) => {
     }
 })
 
+app.get('/profile' , async(req , res , next)=>{
+    const cookies = req.cookies.userToken
+    if(!cookies) return res.status(400).send('no cookies found')
+    const userId = jwt.verify(cookies , 'privatekey')
+    const user = await User.findById(userId)
+    res.send(user)
+})
 
 connectDB().
     then(() => {
