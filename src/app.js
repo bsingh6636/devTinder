@@ -7,6 +7,7 @@ const bcrypt = require('bcrypt')
 const validator = require('validator')
 const cookieParser = require('cookie-parser')
 const jwt = require('jsonwebtoken')
+const userAuth = require('./middleWare/auth')
 
 const app = express()
 app.use(express.json())
@@ -27,14 +28,15 @@ app.post('/signUp', async (req, res) => {
     }
 })
 
-app.get('/feed', async (req, res) => {
-    try {
-        const users = await User.find({})
-        res.status(200).send(users)
-    } catch (error) {
-        res.send(error)
-    }
-})
+// app.get('/feed' ,userAuth , async (req, res) => {
+//     try {
+//         console.log(req.user)
+//         const users = await User.find({})
+//         res.status(200).send(users)
+//     } catch (error) {
+//         res.send(error)
+//     }
+// })
 
 app.post('/findByEmail', async (req, res) => {
     const emailId = req.body.emailId
@@ -108,10 +110,6 @@ app.get('/profile' , async(req , res , next)=>{
     res.send(user)
 })
 
-connectDB().
-    then(() => {
-        console.log("MongoDB connected")
-        app.listen(1234, () => {
-            console.log("Server is running on port 1234")  // server will start on this port
-        })
-    })
+app.listen(1234, () => {
+    console.log("Server is running on port 1234")  // server will start on this port
+})
