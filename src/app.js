@@ -8,27 +8,34 @@ const validator = require('validator')
 const cookieParser = require('cookie-parser')
 const jwt = require('jsonwebtoken')
 const userAuth = require('./middleWare/auth')
+const DB = require('../models')
+const logger = require('./utils/logger')
 
-const app = express()
-app.use(express.json())
-app.use(cookieParser())
+const router = express.Router();
 
-app.post('/signUp', async (req, res) => {
+router.get('/test', async (req, res) => {
+    res.send('test')
+})
+
+router.post('/signUp', async (req, res) => {
     const { emailId, password, firstName, lastName, age, gender, country, skills, photoUrl } = req.body
+    // console.log(db)
     try {
         singUpValidator(req)
         const salt = await bcrypt.genSalt(10)
         const hashedPassword = await bcrypt.hash(password, salt)
-        let user = new User({ emailId, password: hashedPassword, firstName, lastName, age, gender, country, skills, photoUrl })
-        user = await user.save()
+        // let user = new User({ emailId, password: hashedPassword, firstName, lastName, age, gender, country, skills, photoUrl })
+        // user = await user.save()
+        console.log('Loaded models:', DB);
+        const user = await DB.user.create({ emailId, password: hashedPassword, firstName, lastName, age, gender, country, skills, photoUrl })
         res.send(user)
     } catch (error) {
-        console.log(('error while signing up : ' + error))
+        logger.error(error);
         res.send('error while signing up : ' + error.message)
     }
 })
 
-// app.get('/feed' ,userAuth , async (req, res) => {
+// router.get('/feed' ,userAuth , async (req, res) => {
 //     try {
 //         console.log(req.user)
 //         const users = await User.find({})
@@ -38,12 +45,12 @@ app.post('/signUp', async (req, res) => {
 //     }
 // })
 
-app.post('/findByEmail', async (req, res) => {
+router.post('/findByEmail', async (req, res) => {
     const emailId = req.body.emailId
     const users = await User.find({ emailId })
     res.send(users)
 })
-app.post('/findById', async (req, res) => {
+router.post('/findById', async (req, res) => {
     const id = req.body.id
     const firstName = req.body.firstName
     try {
@@ -57,7 +64,7 @@ app.post('/findById', async (req, res) => {
 
 })
 
-app.delete('/deleteUser', async (req, res) => {
+router.delete('/deleteUser', async (req, res) => {
     const id = req.body.id
     try {
         const user = User.findByIdAndDelete(id);
@@ -66,7 +73,7 @@ app.delete('/deleteUser', async (req, res) => {
         res.send(error)
     }
 })
-app.patch('/updateUser/:userId', async (req, res) => {
+router.patch('/updateUser/:userId', async (req, res) => {
     let _id = req.params.userId
     if (!_id) return res.status(400).send('id is required')
     const obj = req.body
@@ -83,7 +90,7 @@ app.patch('/updateUser/:userId', async (req, res) => {
     }
 })
 
-app.post('/signIn', async (req, res, next) => {
+router.post('/signIn', async (req, res, next) => {
     try {
         const { emailId, password } = req.body;
         if (!emailId || !password) return res.status(400).json('emailId and password required')
@@ -102,7 +109,7 @@ app.post('/signIn', async (req, res, next) => {
     }
 })
 
-app.get('/profile' , async(req , res , next)=>{
+router.get('/profile' , async(req , res , next)=>{
     const cookies = req.cookies.userToken
     if(!cookies) return res.status(400).send('no cookies found')
     const userId = jwt.verify(cookies , 'privatekey')
@@ -110,6 +117,4 @@ app.get('/profile' , async(req , res , next)=>{
     res.send(user)
 })
 
-app.listen(1234, () => {
-    console.log("Server is running on port 1234")  // server will start on this port
-})
+module.exports = router
