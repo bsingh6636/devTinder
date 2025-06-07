@@ -10,18 +10,6 @@ const config = require(__dirname + '/../config/config.js')[env];
 const db = {};
 const logger = require('../src/utils/logger');
 
-// Access the development configuration specifically
-// const devConfig = config.development;
-// const dataBase = devConfig.database;
-// const username = devConfig.username;
-// const password = devConfig.password;
-// const host = devConfig.host;
-// const dialect = devConfig.dialect || 'mysql';
-
-
-
-
-
 let sequelize;
 if (config.use_env_variable) {
   sequelize = new Sequelize(process.env[config.use_env_variable], config);
@@ -68,9 +56,8 @@ Object.keys(db).forEach(modelName => {
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
-const DB = db.db;
 
 module.exports ={
-  DB,
+  DB : db,
   sequeliseConnection
 }

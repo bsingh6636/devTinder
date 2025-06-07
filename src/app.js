@@ -8,7 +8,7 @@ const validator = require('validator')
 const cookieParser = require('cookie-parser')
 const jwt = require('jsonwebtoken')
 const userAuth = require('./middleWare/auth')
-const DB = require('../models')
+const {DB} = require('../models')
 const logger = require('./utils/logger')
 
 const router = express.Router();
@@ -24,11 +24,16 @@ router.post('/signUp', async (req, res) => {
         singUpValidator(req)
         const salt = await bcrypt.genSalt(10)
         const hashedPassword = await bcrypt.hash(password, salt)
-        // let user = new User({ emailId, password: hashedPassword, firstName, lastName, age, gender, country, skills, photoUrl })
-        // user = await user.save()
-        console.log('Loaded models:', DB);
-        const user = await DB.user.create({ emailId, password: hashedPassword, firstName, lastName, age, gender, country, skills, photoUrl })
-        res.send(user)
+        const [user, created] = await DB.user.findOrCreate({
+            where : {
+                emailId
+            },
+           defaults:{
+             emailId, password: hashedPassword, firstName, lastName, age, gender, country, skills, photoUrl
+           }, raw:true })
+        console.log(user , created)
+        if(created) res.send({ message: 'user created successfully', user})
+        else res.send({ message: 'user already exist with this email', user})
     } catch (error) {
         logger.error(error);
         res.send('error while signing up : ' + error.message)
