@@ -15,10 +15,16 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
         primaryKey: true
       },
-      emailId: {
+      ulid: {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true
+      },
+      emailId: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+        require: true
       },
       password: {
         type: DataTypes.STRING(500),
@@ -62,6 +68,10 @@ module.exports = (sequelize, DataTypes) => {
         {
           name: 'inx_emailId',
           fields: ['emailId']
+        },
+        {
+          name: 'user_ulid_idx',
+          fields: ['ulid']
         }
       ]
     }

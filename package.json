@@ -4,7 +4,7 @@
   "description": "tinder for devs",
   "main": "index.js",
   "type": "commonjs",
-    "scripts": {
+  "scripts": {
     "start": "node src/index..js",
     "dev": "nodemon src/index..js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -19,6 +19,7 @@
     "mongoose": "^8.7.0",
     "mysql2": "^3.14.1",
     "sequelize": "^6.37.7",
+    "ulid": "^3.0.0",
     "validator": "^13.12.0"
   },
   "devDependencies": {
