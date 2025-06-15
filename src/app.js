@@ -1,23 +1,25 @@
 const express = require('express');
-const { DB } = require('../models');
 const authRouter = require('./routes/auth');
 const profileRouter = require('./routes/profile');
+const requestRouter = require('./routes/request');
+const { userAuth } = require('./middleWare/auth');
 
 const router = express.Router();
 
-router.get('/test', async (req, res) => {
-  res.send('test');
+router.get('/health', async (req, res) => {
+  res.send('test sucess , api working ');
 });
 
 router.use('/auth', authRouter);
-router.use('/profile', profileRouter);
+router.use('/profile', userAuth, profileRouter);
+router.use('/request', userAuth, requestRouter);
 
 router.use('*', (req, res) => {
   res.status(404).json({
     success: false,
     message: 'API route not found',
     path: req.originalUrl
-  });
+  }); 
 });
 
 router.use((err, req, res, next) => {
