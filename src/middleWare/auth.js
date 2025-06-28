@@ -4,7 +4,10 @@ const { DB } = require('../../models');
 const userAuth = async (req, res, next) => {
   try {
     const token = req.cookies?.devTinderToken;
-    if (!token || typeof token !== 'string' || token.length < 10) {
+    if(!token){
+      return res.status(401).json({ success: false , messae : 'missing token' })
+    }
+    if (typeof token !== 'string' || token.length < 10) {
       return res.status(401).json({ success: false, message: 'Authentication token missing or invalid format' });
     }
 

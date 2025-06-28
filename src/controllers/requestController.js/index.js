@@ -1,24 +1,17 @@
 const logger = require("../../utils/logger")
-const { DB } = require("../../../models")
+const { DB } = require("../../../models");
+const { paramsValidator } = require("../../utils/validator");
 
 
 const sendingRequest = async (params) => {
    try {
-     if(!params){
-         logger.error('params not found');
-         throw new Error('params not found');
-         return
-     }
-     if(!params.toUserId || !params.fromUserId || !params.status){
-         logger.error('params not found', params);
-         throw new Error('params not found');
-         return
-     }
+     paramsValidator(params , ['toUserId', 'fromUserId', 'status'])
+
      if(params.toUserId == params.fromUserId){
          logger.error('fromUserId and toUserId can not be same', params);
          throw new Error('You can not send request to yourself');
-         return
      }
+
      const [ request , created] = await DB.connectionRequest.findOrCreate({
          where : {
             receiverId : params.toUserId,

@@ -5,7 +5,6 @@ const bcrypt = require('bcrypt')
 const {DB} = require('../../models')
 const { ulid } = require('ulid')
 const jwt = require('jsonwebtoken');
-const validator = require('validator')
 
 const router = express.Router()
 
@@ -37,7 +36,6 @@ router.post('/signIn', async ( req, res, next ) => {
     try {
         const { emailId, password } = req.body;
         if ( !emailId || !password ) return res.status(400).json('emailId and password required')
-        if ( !validator.isEmail( emailId ) ) return res.status(400).json('invalid email');
 
         const user = await DB.user.findOne( { where : { emailId } } );
         if ( !user ) return res.status(400).json('user not found');
