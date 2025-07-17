@@ -8,11 +8,11 @@ app.use(express.json());
 app.use(cookieParser())
 
 const userRoutes = require('./src/app');
-const { sequeliseConnection } = require('./models');
+const { sequelizeConnection } = require('./models');
 
 app.use('/api', userRoutes);
 
 app.listen(port, () => {
     console.log(`Listening on port ${port}`)
-    sequeliseConnection();
+        // sequelizeConnection();
 })

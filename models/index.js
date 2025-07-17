@@ -2,64 +2,87 @@
 
 const fs = require('fs');
 const path = require('path');
-const Sequelize = require('sequelize');
-const process = require('process');
-const basename = path.basename(__filename);
-const env = process.env.NODE_ENV || 'development';
-const config = require(__dirname + '/../config/config.js')[env];
-const db = {};
+const { Sequelize } = require('sequelize');
+const dotenv = require('dotenv');
 const logger = require('../src/utils/logger');
 
-let sequelize;
-if (config.use_env_variable) {
-  sequelize = new Sequelize(process.env[config.use_env_variable], config);
-  sequeliseConnection();
-} else {
-  sequelize = new Sequelize(config.database, config.username, config.password, config);
-  console.log('connection made ' + new Date() )
-}
+// Load environment variables
+dotenv.config({ path: path.resolve(__dirname, './../.env') });
 
- async function  sequeliseConnection () {
+const basename = path.basename(__filename);
+const db = {};
+
+// Database connection config
+const dbConfig = {
+  database: process.env.AZURE_DBNAME,
+  username: 'brijesh@azure-brijesh',
+  password: process.env.AZURE_DB_PASSWORD,
+  host: process.env.AZURE_DB_HOST,
+  dialect: 'mssql',
+  port: 1433,
+  logging: false,
+  dialectOptions: {
+    options: {
+      encrypt: true,
+      trustServerCertificate: false,
+      enableArithAbort: true,
+      connectTimeout: 60000,
+      requestTimeout: 60000,
+    },
+  },
+};
+
+// Create Sequelize connection
+async function sequelizeConnection() {
   try {
-  await sequelize.authenticate();
-  logger.info('Connection has been established successfully.');
-} catch (error) {
-  console.error('Unable to connect to the database:', error);
-  logger.error('Unable to connect to the database:', error);
-}
+    const sequelize = new Sequelize(dbConfig);
+    await sequelize.authenticate();
+    logger.info('✅ Database connection established.');
+    return sequelize;
+  } catch (error) {
+    logger.error('❌ Database connection failed:', error.message);
+    return null;
+  }
 }
 
-fs
-  .readdirSync(__dirname)
-  .filter(file => {
-    return (
+// Initialize DB: connect, load models, set associations
+async function initializeDatabase() {
+  const sequelize = await sequelizeConnection();
+  if (!sequelize) throw new Error('Database connection failed.');
+
+  // Load models
+  fs.readdirSync(__dirname)
+    .filter(file =>
       file.indexOf('.') !== 0 &&
       file !== basename &&
       file.slice(-3) === '.js' &&
-      file.indexOf('.test.js') === -1
-    );
-  })
-  .forEach(file => {
-    const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
-    db[model.name] = model;
+      !file.endsWith('.test.js')
+    )
+    .forEach(file => {
+      const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
+      db[model.name] = model;
+    });
+
+  // Setup associations
+  Object.values(db).forEach(model => {
+    if (typeof model.associate === 'function') {
+      model.associate(db);
+    }
   });
 
-Object.keys(db).forEach(modelName => {
-  if (db[modelName].associate) {
-    db[modelName].associate(db);
-  }
-});
+  db.sequelize = sequelize;
+  db.Sequelize = Sequelize;
 
-  logger.info(db.user, typeof db.user, 'modelName')
-
-
-db.sequelize = sequelize;
-db.Sequelize = Sequelize;
-
-const DB = db
-
-
-module.exports ={
-  DB,
-  sequeliseConnection
+  return { DB: db, sequelizeConnection };
 }
+
+// Export DB
+initializeDatabase()
+  .then(result => {
+    module.exports = result;
+    logger.info('✅ Database initialized.');
+  })
+  .catch(error => {
+    logger.error('❌ Initialization error:', error.message);
+    module.exports = { DB: {}, sequelizeConnection: () => null };
+  });
